@@ -23,7 +23,7 @@ fi
 echo "→ Mengekspor data dari $CONTAINER ($DB_NAME)…"
 docker exec "$CONTAINER" pg_dump \
   -U "$DB_USER" -d "$DB_NAME" \
-  --data-only --no-owner --no-privileges --disable-triggers \
+  --data-only --no-owner --no-privileges \
   --exclude-table='_prisma_migrations' > "$FILE"
 
 SIZE="$(du -h "$FILE" | cut -f1)"
