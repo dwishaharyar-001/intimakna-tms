@@ -6,7 +6,7 @@
 # Pakai:
 #   bash scripts/set-supabase-db.sh <project-ref>
 # Contoh:
-#   bash scripts/set-supabase-db.sh nuzsgvmdenovjdhqhzdr
+#   bash scripts/set-supabase-db.sh <project-ref>
 #
 # Opsi lingkungan:
 #   POOL_HOST=aws-1-ap-southeast-1.pooler.supabase.com   (bila host pooler berbeda)
@@ -19,7 +19,7 @@ ENV_FILE="$ROOT/apps/api/.env"
 REF="${1:-}"
 
 if [ -z "$REF" ]; then
-  echo "Sebutkan project ref Supabase. Contoh: bash scripts/set-supabase-db.sh nuzsgvmdenovjdhqhzdr" >&2
+  echo "Sebutkan project ref Supabase. Contoh: bash scripts/set-supabase-db.sh <project-ref>" >&2
   exit 1
 fi
 [ -f "$ENV_FILE" ] || { echo "Berkas $ENV_FILE tidak ditemukan." >&2; exit 1; }
