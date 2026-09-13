@@ -1,0 +1,23 @@
+# Blueprint Render — API Intimakna TMS (NestJS)
+# Cara pakai: Render → New → Blueprint → pilih repo ini.
+# Isi nilai env yang ditandai sync: false saat diminta (JANGAN ditulis di file ini).
+services:
+  - type: web
+    name: intimakna-api
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/settings/public
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+      - key: PORT
+        value: 4000

@@ -115,7 +115,9 @@ Semua endpoint mutasi penting tercatat di `AuditLog`.
 - Alur sertifikat & feedback peserta (keputusan #5) — field `certificateNo`/`feedbackScore` sudah tersedia di schema.
 - Integrasi eksternal (sengaja di luar cakupan MVP).
 
-## Deploy (GitHub + Supabase)
+## Deploy (GitHub + Supabase + Vercel)
+
+- Vercel/API produksi & mengatasi `404: NOT_FOUND`: [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md)
 
 Panduan langkah demi langkah ada di [docs/DEPLOY_SUPABASE.md](docs/DEPLOY_SUPABASE.md):
 Supabase sebagai PostgreSQL sementara (region Singapore), migrasi skema, impor data lokal, dan checklist keamanan.
