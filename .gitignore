@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.next/
+out/
+
+# Rahasia & konfigurasi lokal — JANGAN di-commit
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# Hasil build / cache
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Log & berkas sementara
+*.log
+.logs/
+.preview/
+.local/
+dumps/
+*.bak
+*.dump
+*.sql.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

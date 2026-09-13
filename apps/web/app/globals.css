@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-poppins), "Poppins", "Nunito Sans", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Neutrals — mengikuti referensi (#F4F4F6 bg, #2B2B2B text, #9E9E9E sekunder) */
+  --color-slate-50: #fbfbfb;
+  --color-slate-100: #f4f4f6;
+  --color-slate-200: #ececf0;
+  --color-slate-300: #e0e0e4;
+  --color-slate-400: #b9b9bf;
+  --color-slate-500: #9e9e9e;
+  --color-slate-600: #75757b;
+  --color-slate-700: #525258;
+  --color-slate-800: #3a3a3f;
+  --color-slate-900: #2b2b2b;
+  --color-slate-950: #202022;
+
+  /* Brand merah (indigo-* dipetakan ulang ke skala merah referensi) */
+  --color-indigo-50: #fff0ef;
+  --color-indigo-100: #fde0de;
+  --color-indigo-200: #fac2be;
+  --color-indigo-300: #f79b96;
+  --color-indigo-400: #f4706a;
+  --color-indigo-500: #f0524c;
+  --color-indigo-600: #ee3a34;
+  --color-indigo-700: #d92f29;
+  --color-indigo-800: #b2231e;
+  --color-indigo-900: #8c1b17;
+
+  /* Merah tua (aksi berbahaya / logout) */
+  --color-rose-50: #fdecea;
+  --color-rose-100: #f9d8d5;
+  --color-rose-200: #f2b3ae;
+  --color-rose-300: #ea8a83;
+  --color-rose-400: #e05f56;
+  --color-rose-500: #d23a31;
+  --color-rose-600: #c62828;
+  --color-rose-700: #ab2121;
+  --color-rose-800: #8c1a1a;
+
+  /* Hijau sukses (referensi #4CAF50) */
+  --color-emerald-50: #eef7ee;
+  --color-emerald-100: #e2f1e3;
+  --color-emerald-200: #c3e3c6;
+  --color-emerald-300: #9bcf9f;
+  --color-emerald-400: #66ba6b;
+  --color-emerald-500: #4caf50;
+  --color-emerald-600: #43a047;
+  --color-emerald-700: #388e3c;
+  --color-emerald-800: #2e7d32;
+
+  /* Kuning bintang (referensi #F5B301) */
+  --color-amber-400: #f5b301;
+  --color-amber-500: #e0a100;
+  --color-amber-600: #c68f00;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Skala turun halus di layar kecil (semua ukuran rem ikut menyesuaikan) */
+@media (max-width: 1023px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  html {
+    font-size: 13.5px;
+  }
+}
+
+::selection {
+  background: #ee3a34;
+  color: #fff;
+}
+
+/* Donat chart: ring via conic-gradient + mask */
+.donut {
+  border-radius: 9999px;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--donut-w, 14px)),
+    #000 calc(100% - var(--donut-w, 14px))
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--donut-w, 14px)),
+    #000 calc(100% - var(--donut-w, 14px))
+  );
+}
+
+/* Bintang rating */
+.star {
+  color: #f5b301;
+}
+.star-off {
+  color: #e2e2e6;
+}
+
+/* ---------- Kepadatan tampilan (Konfigurasi Umum → Tampilan) ---------- */
+html[data-density='compact'] table th,
+html[data-density='compact'] table td {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+html[data-density='compact'] table thead th {
+  font-size: 0.68rem;
+}
+html[data-density='compact'] .space-y-5 > * + * {
+  margin-top: 0.9rem;
+}
+html[data-density='compact'] .space-y-4 > * + * {
+  margin-top: 0.75rem;
+}
+html[data-density='compact'] .space-y-3 > * + * {
+  margin-top: 0.55rem;
+}
+html[data-density='comfortable'] table th,
+html[data-density='comfortable'] table td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}

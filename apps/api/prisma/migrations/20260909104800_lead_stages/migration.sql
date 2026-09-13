@@ -1,0 +1,42 @@
+-- LeadStage: status leads menjadi konfigurasi SUPER_ADMIN (jumlah, urutan, label, terminal)
+CREATE TYPE "LeadStageKind" AS ENUM ('OPEN', 'WON', 'LOST');
+
+CREATE TABLE "LeadStage" (
+    "id" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "kind" "LeadStageKind" NOT NULL DEFAULT 'OPEN',
+    "orderIndex" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "LeadStage_pkey" PRIMARY KEY ("id")
+);
+
+-- Status default (setara nilai enum lama), agar data leads lama tetap terbaca
+INSERT INTO "LeadStage" ("id", "label", "kind", "orderIndex") VALUES
+    ('00000000-0000-4000-8000-000000000001', 'Baru', 'OPEN', 0),
+    ('00000000-0000-4000-8000-000000000002', 'Dihubungi', 'OPEN', 1),
+    ('00000000-0000-4000-8000-000000000003', 'Proposal Dikirim', 'OPEN', 2),
+    ('00000000-0000-4000-8000-000000000004', 'Menang', 'WON', 3),
+    ('00000000-0000-4000-8000-000000000005', 'Gagal', 'LOST', 4);
+
+ALTER TABLE "Lead" ADD COLUMN "stageId" TEXT;
+
+UPDATE "Lead" SET "stageId" = CASE "status"
+    WHEN 'NEW' THEN '00000000-0000-4000-8000-000000000001'
+    WHEN 'CONTACTED' THEN '00000000-0000-4000-8000-000000000002'
+    WHEN 'PROPOSAL_SENT' THEN '00000000-0000-4000-8000-000000000003'
+    WHEN 'CLOSED_WON' THEN '00000000-0000-4000-8000-000000000004'
+    WHEN 'CLOSED_LOST' THEN '00000000-0000-4000-8000-000000000005'
+    ELSE '00000000-0000-4000-8000-000000000001'
+END;
+
+ALTER TABLE "Lead" ALTER COLUMN "stageId" SET NOT NULL;
+ALTER TABLE "Lead" DROP COLUMN "status";
+
+ALTER TABLE "Lead" ADD CONSTRAINT "Lead_stageId_fkey"
+    FOREIGN KEY ("stageId") REFERENCES "LeadStage"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+CREATE INDEX "Lead_stageId_idx" ON "Lead"("stageId");
+
+DROP TYPE "LeadStatus";

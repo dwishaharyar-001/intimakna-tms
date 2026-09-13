@@ -1,0 +1,370 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// =====================
+// ENUMS
+// =====================
+enum Role {
+  MANAGEMENT
+  SALES_MARKETING
+  ADMIN_TRAINING
+  TRAINING_SUPPORT
+  FINANCE
+  SUPER_ADMIN
+}
+
+enum LeadSource {
+  WHATSAPP
+  CALL
+  ALUMNI_REFERRAL
+  POST_TRAINING
+}
+
+enum LeadStageKind {
+  OPEN
+  WON
+  LOST
+}
+
+enum BatchStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  ATTENDED
+  COMPLETED
+  DROPPED
+}
+
+enum ExpenseCategory {
+  VENUE
+  TRAINER_FEE
+  MODUL_ATK
+  CATERING
+  OTHER
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+// Jenis follow-up aktivitas terhadap lead
+enum ActivityType {
+  CALL
+  WHATSAPP
+  EMAIL
+  MEETING
+  OTHER
+}
+
+enum ActivityStatus {
+  PLANNED
+  DONE
+  CANCELLED
+}
+
+enum ActivityOutcome {
+  NO_ANSWER
+  POSITIVE
+  NEEDS_FOLLOWUP
+  REJECTED
+  CONVERTED
+}
+
+// Checklist persiapan kelas/program
+enum RequirementCategory {
+  DEFAULT
+  CUSTOM
+}
+
+// Bentuk pelaksanaan pelatihan
+enum DeliveryType {
+  REGULAR   // kelas reguler publik — harga per peserta
+  IN_HOUSE  // in-house korporat — harga paket (flat)
+}
+
+// =====================
+// MODELS
+// =====================
+
+// Tahapan pipeline leads — dapat dikonfigurasi SUPER_ADMIN
+// (jumlah, urutan, label, dan sifat terminal WON/LOST).
+model LeadStage {
+  id         String        @id @default(uuid())
+  label      String
+  kind       LeadStageKind @default(OPEN)
+  orderIndex Int           @default(0)
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  leads Lead[]
+}
+
+model User {
+  id           String       @id @default(uuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  leads        Lead[]           @relation("AssignedLeads")
+  auditLogs       AuditLog[]
+  refreshSessions RefreshSession[]
+  leadActivities  LeadActivity[]  @relation("LeadActivityAuthor")
+  requirementsDone BatchRequirement[] @relation("RequirementDoneBy")
+  pageLayouts     UserPageLayout[]   @relation("UserPageLayoutOwner")
+}
+
+// Susunan widget per halaman, per user (drag & drop)
+model UserPageLayout {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserPageLayoutOwner", fields: [userId], references: [id], onDelete: Cascade)
+  pageKey   String
+  layout    Json     // [{ key, hidden, order }]
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, pageKey])
+}
+
+model Lead {
+  id            String       @id @default(uuid())
+  source        LeadSource   @default(WHATSAPP)
+  name          String
+  company       String?
+  phone         String
+  email         String?
+  stageId       String
+  stage         LeadStage    @relation(fields: [stageId], references: [id])
+  // Minat: program dan/atau kelas reguler spesifik (opsional)
+  interestProgramId String?
+  interestProgram   TrainingProgram? @relation("LeadProgram", fields: [interestProgramId], references: [id])
+  interestBatchId   String?
+  interestBatch     ProgramBatch?   @relation("LeadBatch", fields: [interestBatchId], references: [id])
+  assignedToId  String?
+  assignedTo    User?        @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  participantId String?      @unique
+  participant   Participant? @relation("LeadParticipant", fields: [participantId], references: [id])
+  activities    LeadActivity[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([stageId])
+}
+
+// Catatan aktivitas follow-up per lead (email/call/WA/tatap muka/lainnya)
+model LeadActivity {
+  id           String          @id @default(uuid())
+  leadId       String
+  lead         Lead            @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type         ActivityType
+  status       ActivityStatus  @default(DONE)
+  summary      String
+  outcome      ActivityOutcome?
+  scheduledAt  DateTime?
+  doneAt       DateTime?
+  nextActionAt DateTime?
+  createdById  String
+  createdBy    User            @relation("LeadActivityAuthor", fields: [createdById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([leadId, createdAt])
+  @@index([status, scheduledAt])
+}
+
+model Participant {
+  id        String             @id @default(uuid())
+  name      String
+  email     String?            @unique
+  phone     String             @unique
+  company   String?
+  position  String?
+  notes     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  histories BatchParticipant[]
+  leads     Lead[]             @relation("LeadParticipant")
+  revenues  BatchRevenue[]
+}
+
+model TrainingProgram {
+  id           String         @id @default(uuid())
+  title        String
+  category     String
+  description  String?
+  syllabus     String?        // silabus/materi pelatihan (opsional)
+  standardPrice Decimal       @db.Decimal(12, 2)  // harga per peserta (reguler)
+  inHousePrice Decimal?       @db.Decimal(12, 2)  // usulan harga paket bila in-house
+  createdAt    DateTime       @default(now())
+
+  leads        Lead[]         @relation("LeadProgram")
+}
+
+// Judul Materi (unit ajar). Learning Path = urutan Judul Materi berdasarkan level.
+model Material {
+  id           String   @id @default(uuid())
+  title        String
+  category     String?
+  description  String?
+  syllabus     String?
+  levelNumber  Int?     // urutan dasar→advanced; null = belum diatur
+  orderInLevel Int      @default(0) // urutan dalam level yang sama
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  batches ProgramBatch[]
+
+  @@index([levelNumber, orderInLevel])
+}
+
+model ProgramBatch {
+  id          String             @id @default(uuid())
+  batchName   String             // Nama Kelas Reguler (batch dari Judul Materi)
+  materialId  String?
+  material    Material?          @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  category    String?
+  description String?
+  syllabus    String?            // silabus/materi kelas (opsional)
+  startDate   DateTime
+  endDate     DateTime
+  location    String?
+  status      BatchStatus        @default(PLANNED)
+
+  // Bentuk pelaksanaan & harga
+  deliveryType         DeliveryType  @default(REGULAR)
+  clientName           String?       // nama korporasi (khusus IN_HOUSE)
+  pricePerPax          Decimal?      @db.Decimal(12, 2) // override harga per peserta (reguler)
+  packagePrice         Decimal?      @db.Decimal(12, 2) // harga paket (in-house)
+  packagePaid          Decimal       @default(0.00) @db.Decimal(12, 2)
+  packagePaymentStatus PaymentStatus @default(UNPAID)
+
+  participants BatchParticipant[]
+  expenses     BatchExpense[]
+  revenues     BatchRevenue[]
+  leads        Lead[]             @relation("LeadBatch")
+  requirements BatchRequirement[]
+}
+
+// Daftar item Default (diatur di Konfigurasi; disalin ke kelas baru saat dibuat)
+model RequirementTemplate {
+  id         String   @id @default(uuid())
+  title      String
+  note       String?
+  orderIndex Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Item checklist milik satu kelas/program
+model BatchRequirement {
+  id         String              @id @default(uuid())
+  batchId    String
+  batch      ProgramBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  category   RequirementCategory @default(DEFAULT)
+  title      String
+  note       String?
+  isDone     Boolean             @default(false)
+  doneAt     DateTime?
+  doneById   String?
+  doneBy     User?               @relation("RequirementDoneBy", fields: [doneById], references: [id], onDelete: SetNull)
+  orderIndex Int                 @default(0)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([batchId, category, orderIndex])
+}
+
+model BatchParticipant {
+  id                 String             @id @default(uuid())
+  batchId            String
+  batch              ProgramBatch       @relation(fields: [batchId], references: [id])
+  participantId      String
+  participant        Participant        @relation(fields: [participantId], references: [id])
+  registrationStatus RegistrationStatus @default(REGISTERED)
+  feedbackScore      Int?
+  certificateNo      String?
+  createdAt          DateTime           @default(now())
+
+  @@unique([batchId, participantId])
+}
+
+model BatchExpense {
+  id          String          @id @default(uuid())
+  batchId     String
+  batch       ProgramBatch    @relation(fields: [batchId], references: [id])
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(12, 2)
+  description String?
+  expenseDate DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+}
+
+model BatchRevenue {
+  id            String        @id @default(uuid())
+  batchId       String
+  batch         ProgramBatch  @relation(fields: [batchId], references: [id])
+  participantId String
+  participant   Participant   @relation(fields: [participantId], references: [id])
+  totalAmount   Decimal       @db.Decimal(12, 2)
+  totalPaid     Decimal       @default(0.00) @db.Decimal(12, 2)
+  paymentStatus PaymentStatus @default(UNPAID)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([batchId, participantId])
+}
+
+// Sesi refresh token berbasis database (opaque token, hashed SHA-256),
+// mendukung rotasi + revoke (logout / deteksi pemakaian ulang).
+model RefreshSession {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+  replacedById String?   @unique
+  ipAddress    String?
+  userAgent    String?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+// Setelan umum aplikasi (baris tunggal "global", hanya diubah Super Admin).
+// `data` menyimpan grup: identity, locale, period, defaults, appearance.
+model AppSetting {
+  id        String   @id
+  data      Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
