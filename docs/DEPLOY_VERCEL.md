@@ -1,29 +1,62 @@
 # Deploy ke Vercel (web) + host API
 
 Dua bagian harus jalan bersamaan: **web (Next.js) di Vercel** dan **API (NestJS) di host Node**
-(mis. Render/Railway/Fly). Vercel hanya menjalankan web; API tidak bisa berjalan sebagai server
-persisten di Vercel, jadi jangan deploy API ke sana.
+(mis. Render/Railway/Fly). Vercel hanya menjalankan web.
 
 ---
 
 ## A. Kenapa muncul `404: NOT_FOUND`
 
 Repo ini **monorepo** (`apps/web`, `apps/api`) dan **tidak punya `package.json` di root**.
-Kalau Vercel mem-build dari root repo, tidak ada aplikasi yang dihasilkan → setiap URL balas 404.
+Kalau Vercel membangun dari root repo, tidak ada aplikasi yang dihasilkan → semua URL balas 404.
 
-**Perbaikan (wajib):** arahkan Vercel ke folder web.
+Yang harus dicapai: **Root Directory project = `apps/web`**.
+Berikut 4 cara mencapainya — pilih salah satu.
 
-1. Vercel → project Anda → **Settings → Build and Deployment**.
-2. **Root Directory** → klik *Edit* → pilih **`apps/web`** → Save.
-3. Pastikan:
-   - **Framework Preset**: `Next.js`
-   - **Build Command**: `next build` (biarkan default)
-   - **Output Directory**: `.next` (default)
-   - **Install Command**: `npm install` (default)
-   - **Node.js Version**: `22.x` (Settings → General → Node.js Version)
-4. Tab **Deployments** → **Redeploy** (centang *Use existing Build Cache* boleh).
+### Cara 1 — Lewat URL langsung (paling cepat)
 
-Hasil yang benar: halaman login tampil, bukan 404.
+Buka: `https://vercel.com/<nama-akun>/<nama-project>/settings/build-and-deployment`
+Contoh: `https://vercel.com/dwishaharyar-001/intimakna-tms/settings/build-and-deployment`
+
+Di halaman itu gulir ke bawah → **Root Directory** → klik **Edit** → isi `apps/web` → **Save**.
+Lalu tab **Deployments** → **Redeploy**.
+
+> Catatan: halaman settings di atas adalah **settings project** (URL mengandung `/settings`),
+> bukan settings akun. Pastikan Anda sedang di dalam project, bukan di daftar project.
+
+### Cara 2 — Lewat Settings → General
+
+1. Buka project → tab **Settings** → **General**.
+2. Cari kartu **Build & Development Settings** → klik **Edit**/**Override**.
+3. Isi kolom **Root Directory** = `apps/web` → Save → **Redeploy**.
+
+### Cara 3 — Buat ulang project dari repo (paling pasti)
+
+1. Vercel → **Add New… → Project** → pilih repo `intimakna-tms`.
+2. Pada layar **Configure Project**, bagian **Root Directory** klik **Edit** → pilih **`apps/web`**.
+3. Framework Preset otomatis **Next.js**. Klik **Deploy**.
+4. Project baru ini pasti benar; project lama bisa dihapus setelahnya.
+
+### Cara 4 — Tanpa dashboard (Vercel CLI)
+
+```bash
+cd apps/web
+npx vercel link      # pilih project yang sudah ada (atau buat baru)
+npx vercel --prod
+```
+CLI memakai folder aktif (`apps/web`) sebagai root, jadi tidak perlu mengubah menu apa pun.
+
+### Setelah Root Directory benar
+
+Pastikan juga:
+
+| Pengaturan | Nilai |
+|---|---|
+| Framework Preset | `Next.js` |
+| Build Command | `next build` (default) |
+| Output Directory | `.next` (default) |
+| Install Command | `npm install` (default) |
+| **Node.js Version** (Settings → General) | `22.x` |
 
 ## B. Variabel lingkungan di Vercel
 
@@ -70,6 +103,7 @@ Alternatif selain Render: Railway/Fly.io/VPS — pakai `apps/api/Dockerfile` yan
 - Pastikan domain yang dibuka adalah **domain produksi** deployment terakhir (bukan preview lama).
 - Bila build gagal karena Node terlalu tua, set Node.js Version ke 22.x lalu redeploy.
 - Kalau memakai **Preview Deployment** dari PR, env `API_URL` harus diisi juga untuk environment Preview.
+- Pastikan Root Directory benar-benar tersimpan: buka lagi halaman settings dan cek nilainya masih `apps/web`.
 
 ## F. Catatan cookie & keamanan
 
